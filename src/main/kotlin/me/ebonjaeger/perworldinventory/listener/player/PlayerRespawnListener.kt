@@ -2,52 +2,47 @@ package me.ebonjaeger.perworldinventory.listener.player
 
 import me.ebonjaeger.perworldinventory.ConsoleLogger
 import me.ebonjaeger.perworldinventory.GroupManager
-import me.ebonjaeger.perworldinventory.configuration.PluginSettings
-import me.ebonjaeger.perworldinventory.configuration.Settings
-import org.bukkit.Bukkit
+import me.ebonjaeger.perworldinventory.data.ProfileManager
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerRespawnEvent
+import org.bukkit.event.player.PlayerTeleportEvent
 import javax.inject.Inject
 
-/**
- * Listener for [PlayerRespawnEvent].
- */
 class PlayerRespawnListener @Inject constructor(private val groupManager: GroupManager,
-                                                private val settings: Settings) : Listener
+                                                 private val profileManager: ProfileManager) : Listener
 {
 
-    @EventHandler(priority = EventPriority.LOW)
-    fun onPlayerRespawn(event: PlayerRespawnEvent) {
-        // Do nothing if managing respawns is disabled in the config
-        if (!settings.getProperty(PluginSettings.MANAGE_DEATH_RESPAWN)) {
+    @EventHandler(priority = EventPriority.MONITOR)
+    fun onPlayerRespawn(event: PlayerRespawnEvent)
+    {
+        val destination = event.respawnLocation
+
+        if (event.player.location.world == destination.world)
+        {
             return
         }
 
-        val group = groupManager.getGroupFromWorld(event.player.location.world!!.name) // The server will never provide a null world in a Location
+        val player = event.player
+        val worldFromName = player.location.world!!.name // The server will never provide a null world in a Location
+        val worldToName = destination.world!!.name // The server will never provide a null world in a Location
+        val groupFrom = groupManager.getGroupFromWorld(worldFromName)
+        val groupTo = groupManager.getGroupFromWorld(worldToName)
 
-        // Check for a bed location in the group
-        val bedLocation = event.player.bedSpawnLocation
-        if (bedLocation != null) {
-            // Set the spawn location to the bed and return if it's in the same group
-            if (group.containsWorld(bedLocation.world!!.name)) {
-                event.respawnLocation = bedLocation
-                return
-            }
+        ConsoleLogger.fine("onPlayerRespawn: '${event.player.name}' going teleporting to another world")
+        ConsoleLogger.debug("onPlayerRespawn: worldFrom='$worldFromName', worldTo='$worldToName'")
+
+        if (groupFrom == groupTo)
+        {
+            return
         }
 
-        // Set the respawn location to the world set in the config
-        val respawnWorld = group.respawnWorld
-        if (respawnWorld != null && group.containsWorld(respawnWorld)) {
-            val world = Bukkit.getWorld(respawnWorld)
+        profileManager.addPlayerProfile(player, groupFrom, player.gameMode)
 
-            if (world == null) {
-                ConsoleLogger.warning("Unable to set respawn location: World '$respawnWorld' doesn't exist!")
-                return
-            }
+        // TODO: Save the player's last location
 
-            event.respawnLocation = world.spawnLocation
-        }
+        // Possibly prevents item duping exploit
+        player.closeInventory()
     }
 }

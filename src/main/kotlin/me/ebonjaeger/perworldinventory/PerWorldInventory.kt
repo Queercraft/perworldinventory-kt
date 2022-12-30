@@ -134,7 +134,6 @@ class PerWorldInventory : JavaPlugin
         server.pluginManager.registerEvents(injector.getSingleton(PlayerGameModeChangeListener::class), this)
         server.pluginManager.registerEvents(injector.getSingleton(PlayerQuitListener::class), this)
         server.pluginManager.registerEvents(injector.getSingleton(PlayerTeleportListener::class), this)
-        server.pluginManager.registerEvents(injector.getSingleton(PlayerPortalListener::class), this)
         server.pluginManager.registerEvents(injector.getSingleton(EntityPortalEventListener::class), this)
         server.pluginManager.registerEvents(injector.getSingleton(PlayerDeathListener::class), this)
         server.pluginManager.registerEvents(injector.getSingleton(PlayerRespawnListener::class), this)
